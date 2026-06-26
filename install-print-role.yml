@@ -1,0 +1,36 @@
+---
+- name: Create a local Windows user
+  hosts: all
+  gather_facts: no
+
+  vars:
+    ansible_connection: ssh
+    ansible_shell_type: powershell
+    ansible_user: Administrator
+
+  tasks:
+    - name: Create local user
+      ansible.windows.win_user:
+        name: deployuser
+        password: "P@ssw0rd123!"
+        state: present
+        groups:
+          - Users
+        password_never_expires: yes
+        user_cannot_change_password: no
+
+    - name: Install Print Server Role
+      win_feature:
+        name: RSAT-Print-Services
+        state: present
+    - name: Install all critical and security updates
+      win_updates:
+        category_names:
+        - CriticalUpdates
+        - SecurityUpdates
+        state: installed
+      register: update_result
+
+    - name: Reboot host if required
+      win_reboot:
+      when: update_result.reboot_required
